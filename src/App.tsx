@@ -494,6 +494,9 @@ export function App() {
             onGenerateAIPlan={handleGenerateAIPlan}
             isGeneratingAI={isGeneratingAI}
             onOpenTeacherSelectModal={() => setIsTeacherSelectModalOpen(true)}
+            availableClasses={masterTimetable.classes}
+            onSelectClass={handleSelectClass}
+            onSyncFromCurriculum={() => refreshScheduleAndPlans(masterTimetable, schoolInfo)}
           />
         )}
 

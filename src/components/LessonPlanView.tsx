@@ -26,7 +26,8 @@ import {
   CheckCircle2,
   CheckCircle,
   Music,
-  Languages
+  Languages,
+  GraduationCap
 } from "lucide-react";
 import { buildSearchQueries } from "../utils/lectureResourceHelper";
 import { downloadLessonPresentationPptx } from "../utils/pptxExportHelper";
@@ -46,6 +47,9 @@ interface LessonPlanViewProps {
   onGenerateAIPlan: (plan: LessonPlan, customPrompt?: string) => Promise<void>;
   isGeneratingAI: boolean;
   onOpenTeacherSelectModal?: () => void;
+  availableClasses?: string[];
+  onSelectClass?: (cls: string) => void;
+  onSyncFromCurriculum?: () => void;
 }
 
 export const LessonPlanView: React.FC<LessonPlanViewProps> = ({
@@ -58,6 +62,9 @@ export const LessonPlanView: React.FC<LessonPlanViewProps> = ({
   onGenerateAIPlan,
   isGeneratingAI,
   onOpenTeacherSelectModal,
+  availableClasses,
+  onSelectClass,
+  onSyncFromCurriculum,
 }) => {
   const [selectedPlanId, setSelectedPlanId] = useState<string>(lessonPlans[0]?.id || "");
   const [selectedDayFilter, setSelectedDayFilter] = useState<string>("all");
@@ -70,6 +77,7 @@ export const LessonPlanView: React.FC<LessonPlanViewProps> = ({
   const [isDownloadingPptx, setIsDownloadingPptx] = useState<boolean>(false);
   const [downloadSuccessMsg, setDownloadSuccessMsg] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
+  const [syncToast, setSyncToast] = useState<string | null>(null);
 
   // Group and sort lesson plans day by day (Thứ Hai -> Thứ Sáu) strictly in TKB order
   const dayOrder: Record<string, number> = {
@@ -165,6 +173,74 @@ export const LessonPlanView: React.FC<LessonPlanViewProps> = ({
             <User className="w-3 h-3" />
             <span>Đổi Giáo Viên / Soạn Cho GV Khác</span>
           </button>
+        )}
+      </div>
+
+      {/* Class Switcher & Curriculum Synchronization Bar */}
+      <div className="bg-white border-2 border-black p-3.5 sm:p-4 shadow-[3px_3px_0px_rgba(0,0,0,1)] space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200 pb-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <GraduationCap className="w-4 h-4 text-black shrink-0" />
+            <span className="font-serif font-bold text-xs uppercase tracking-wide text-black">
+              Lập KHBD Các Lớp (Đồng Bộ Chuẩn CV 2345 - Bảng 2 Cột Gọn Gàng):
+            </span>
+            <span className="text-[10px] bg-stone-100 px-2 py-0.5 border border-stone-300 font-sans text-stone-700">
+              Đang xem: <strong>Lớp {schoolInfo.className}</strong> - {schoolInfo.teacherName}
+            </span>
+          </div>
+          {onSyncFromCurriculum && (
+            <button
+              type="button"
+              onClick={() => {
+                onSyncFromCurriculum();
+                setSyncToast(`Đã đồng bộ lại toàn bộ KHBD Tuần ${schoolInfo.week} Lớp ${schoolInfo.className} (${schoolInfo.teacherName}) chuẩn 2 cột!`);
+                setTimeout(() => setSyncToast(null), 4000);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-stone-100 hover:bg-stone-200 text-stone-900 border border-black text-[11px] font-bold uppercase tracking-wider shadow-[1px_1px_0px_rgba(0,0,0,1)] transition-colors cursor-pointer shrink-0"
+              title="Đồng bộ lại toàn bộ kế hoạch bài dạy theo Thời khóa biểu và Kế hoạch dạy học phân phối chương trình chuẩn"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Đồng Bộ Lại KHBD (TKB & KHDH)</span>
+            </button>
+          )}
+        </div>
+
+        {/* Classes quick selector chips */}
+        <div className="flex items-center flex-wrap gap-2">
+          {availableClasses && availableClasses.map((cls) => {
+            const isSelected = schoolInfo.className === cls;
+            const isOanh1A1 = cls === "1A1";
+            return (
+              <button
+                key={cls}
+                type="button"
+                onClick={() => {
+                  if (onSelectClass) {
+                    onSelectClass(cls);
+                    setSyncToast(`Đã chuyển sang lập KHBD cho Lớp ${cls}${isOanh1A1 ? " (Cô Oanh)" : ""}`);
+                    setTimeout(() => setSyncToast(null), 3000);
+                  }
+                }}
+                className={`px-3 py-1.5 text-xs font-bold font-serif uppercase tracking-wider border transition-all cursor-pointer flex items-center gap-1.5 ${
+                  isSelected
+                    ? "bg-black text-white border-black shadow-[2px_2px_0px_rgba(0,0,0,1)] ring-2 ring-black ring-offset-1"
+                    : isOanh1A1
+                    ? "bg-amber-100 text-amber-950 border-amber-600 hover:bg-amber-200 shadow-[1px_1px_0px_rgba(0,0,0,1)] font-sans"
+                    : "bg-stone-50 text-stone-800 border-stone-300 hover:bg-stone-100 hover:border-black"
+                }`}
+              >
+                <span>{isOanh1A1 ? "⭐ Lớp cô Oanh 1A1" : `Lớp ${cls}`}</span>
+                {isSelected && <span className="text-[9px] bg-white text-black px-1 font-mono font-black">Đang chọn</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {syncToast && (
+          <div className="p-2 bg-emerald-50 border border-emerald-500 text-emerald-900 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+            <span>{syncToast}</span>
+          </div>
         )}
       </div>
 
@@ -494,31 +570,44 @@ export const LessonPlanView: React.FC<LessonPlanViewProps> = ({
                           </div>
                         </div>
 
-                        {/* III. Các hoạt động dạy học chủ yếu */}
+                        {/* III. Các hoạt động dạy học chủ yếu - BẢNG 2 CỘT CHUẨN CV 2345 (GỌN GÀNG ĐỒNG BỘ) */}
                         <div className="border border-black overflow-x-auto bg-white">
                           <table className="w-full text-xs border-collapse">
                             <thead>
                               <tr className="bg-stone-100 border-b border-black text-black font-bold">
-                                <th className="py-2 px-3 text-left w-32 border-r border-black">Hoạt Động</th>
-                                <th className="py-2 px-3 text-left border-r border-black w-1/2">Hoạt Động Của Giáo Viên</th>
-                                <th className="py-2 px-3 text-left">Hoạt Động Của Học Sinh</th>
+                                <th className="py-2 px-3 text-center border-r border-black w-1/2 uppercase text-[11px] tracking-wider font-serif bg-stone-100">
+                                  HOẠT ĐỘNG CỦA GIÁO VIÊN
+                                </th>
+                                <th className="py-2 px-3 text-center w-1/2 uppercase text-[11px] tracking-wider font-serif bg-stone-100">
+                                  HOẠT ĐỘNG CỦA HỌC SINH
+                                </th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-stone-200">
+                            <tbody className="divide-y divide-stone-300">
                               {plan.activities?.map((act, ai) => (
-                                <tr key={ai} className="hover:bg-stone-50">
-                                  <td className="py-2 px-3 align-top font-bold text-stone-900 border-r border-black text-[11px]">
-                                    {ai + 1}. {act.name}
+                                <tr key={ai} className={ai % 2 === 0 ? "bg-white" : "bg-stone-50/60"}>
+                                  {/* Cột 1: Hoạt động của GV */}
+                                  <td className="py-2.5 px-3.5 align-top text-stone-900 border-r border-black text-[11.5px] space-y-1.5 w-1/2">
+                                    <div className="font-bold text-blue-900 text-xs uppercase font-serif">
+                                      {act.name?.match(/^\d+\./) ? act.name : `${ai + 1}. ${act.name}`}
+                                    </div>
                                     {act.objective && (
-                                      <div className="text-[10px] font-normal text-stone-600 mt-0.5">
-                                        Mục tiêu: {act.objective}
+                                      <div className="text-[11px] text-stone-700 bg-stone-100 p-1.5 border border-stone-300">
+                                        <strong>* Mục tiêu:</strong> {act.objective}
                                       </div>
                                     )}
+                                    <div className="leading-relaxed whitespace-pre-line text-[11.5px] pt-1">
+                                      <strong className="text-black font-serif">* Cách tiến hành (GV làm gì cho HS):</strong>
+                                      <br />
+                                      {act.teacherActivity}
+                                    </div>
                                   </td>
-                                  <td className="py-2 px-3 align-top text-stone-800 border-r border-black text-[11px] leading-relaxed whitespace-pre-line">
-                                    {act.teacherActivity}
-                                  </td>
-                                  <td className="py-2 px-3 align-top text-stone-800 text-[11px] leading-relaxed whitespace-pre-line">
+
+                                  {/* Cột 2: Hoạt động của HS */}
+                                  <td className="py-2.5 px-3.5 align-top text-stone-900 text-[11.5px] leading-relaxed whitespace-pre-line w-1/2">
+                                    <div className="font-bold text-stone-500 text-[10.5px] mb-1.5 uppercase tracking-wider">
+                                      (Nội dung học tập &amp; Thực hiện của HS)
+                                    </div>
                                     {act.studentActivity}
                                   </td>
                                 </tr>
@@ -942,39 +1031,101 @@ export const LessonPlanView: React.FC<LessonPlanViewProps> = ({
                 <div className="overflow-x-auto border border-black">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-stone-100 text-black font-serif font-bold uppercase text-[10px] tracking-wider border-b border-black">
-                        <th className="py-3 px-4 border-r border-black w-1/2 text-center">
+                      <tr className="bg-stone-100 text-black font-serif font-bold uppercase text-[10px] sm:text-[11px] tracking-wider border-b border-black">
+                        <th className="py-3 px-4 border-r border-black w-1/2 text-center bg-stone-100">
                           HOẠT ĐỘNG CỦA GIÁO VIÊN
                         </th>
-                        <th className="py-3 px-4 w-1/2 text-center">
+                        <th className="py-3 px-4 w-1/2 text-center bg-stone-100">
                           HOẠT ĐỘNG CỦA HỌC SINH
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-black">
-                      {activePlan.activities.map((act, actIdx) => (
+                      {(isEditing && editFormData ? editFormData.activities : activePlan.activities).map((act, actIdx) => (
                         <tr key={act.id || actIdx} className={actIdx % 2 === 0 ? "bg-white" : "bg-stone-50/60"}>
                           {/* Teacher Column */}
-                          <td className="py-3 px-4 border-r border-black align-top space-y-2">
-                            <div className="font-bold text-black text-xs uppercase">
-                              {act.name}
-                            </div>
-                            <div className="text-xs text-stone-700 bg-stone-100 p-2 border border-stone-300">
-                              <strong>* Mục tiêu:</strong> {act.objective}
-                            </div>
-                            <div className="text-stone-900 leading-relaxed whitespace-pre-line text-xs">
-                              <strong>* Cách tiến hành:</strong>
-                              <br />
-                              {act.teacherActivity}
-                            </div>
+                          <td className="py-3 px-4 border-r border-black align-top space-y-2 w-1/2">
+                            {isEditing && editFormData ? (
+                              <div className="space-y-2 font-sans">
+                                <div>
+                                  <label className="text-[10px] font-bold text-stone-700 uppercase block mb-1">
+                                    Tên Hoạt Động {actIdx + 1}:
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={act.name}
+                                    onChange={(e) => handleActivityChange(actIdx, "name", e.target.value)}
+                                    className="w-full p-2 text-xs border border-black bg-white font-bold"
+                                    placeholder="Vd: 1. Khởi động (5 phút)"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] font-bold text-stone-700 uppercase block mb-1">
+                                    Mục Tiêu Hoạt Động:
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={act.objective}
+                                    onChange={(e) => handleActivityChange(actIdx, "objective", e.target.value)}
+                                    className="w-full p-2 text-xs border border-stone-400 bg-white"
+                                    placeholder="Mục tiêu của hoạt động..."
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[10px] font-bold text-stone-700 uppercase block mb-1">
+                                    Hướng Dẫn Của GV (GV Làm Gì Cho HS):
+                                  </label>
+                                  <textarea
+                                    rows={8}
+                                    value={act.teacherActivity}
+                                    onChange={(e) => handleActivityChange(actIdx, "teacherActivity", e.target.value)}
+                                    className="w-full p-2 text-xs border border-black bg-white leading-relaxed font-sans"
+                                    placeholder="Nhiệm vụ GV giao, câu hỏi, hướng dẫn, chốt kiến thức..."
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="font-bold text-blue-950 text-xs uppercase font-serif">
+                                  {act.name}
+                                </div>
+                                {act.objective && (
+                                  <div className="text-xs text-stone-700 bg-stone-100 p-2 border border-stone-300">
+                                    <strong>* Mục tiêu:</strong> {act.objective}
+                                  </div>
+                                )}
+                                <div className="text-stone-900 leading-relaxed whitespace-pre-line text-xs pt-1">
+                                  <strong className="text-black font-semibold">* Cách tiến hành (GV làm gì cho HS):</strong>
+                                  <br />
+                                  {act.teacherActivity}
+                                </div>
+                              </>
+                            )}
                           </td>
 
                           {/* Student Column */}
-                          <td className="py-3 px-4 align-top text-stone-900 leading-relaxed whitespace-pre-line text-xs">
-                            <div className="font-bold text-stone-500 text-[11px] mb-2 uppercase">
-                              (Phản hồi & Thực hiện của HS)
-                            </div>
-                            {act.studentActivity}
+                          <td className="py-3 px-4 align-top text-stone-900 leading-relaxed whitespace-pre-line text-xs w-1/2">
+                            {isEditing && editFormData ? (
+                              <div className="space-y-1 font-sans">
+                                <label className="text-[10px] font-bold text-stone-700 uppercase block mb-1">
+                                  Nội Dung Thực Hiện Của HS (HS Làm Nội Dung Gì):
+                                </label>
+                                <textarea
+                                  rows={12}
+                                  value={act.studentActivity}
+                                  onChange={(e) => handleActivityChange(actIdx, "studentActivity", e.target.value)}
+                                  className="w-full p-2 text-xs border border-black bg-white leading-relaxed font-sans"
+                                  placeholder="Nội dung HS đọc/viết/thực hành, làm việc nhóm, báo cáo, tự sửa bài..."
+                                />
+                              </div>
+                            ) : (
+                              <>
+                                <div className="font-bold text-stone-500 text-[10.5px] mb-2 uppercase tracking-wider">
+                                  (Nội dung học tập &amp; Thực hiện của HS)
+                                </div>
+                                {act.studentActivity}
+                              </>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -988,9 +1139,19 @@ export const LessonPlanView: React.FC<LessonPlanViewProps> = ({
                 <h3 className="font-serif font-bold text-sm text-black border-b border-black pb-1 uppercase tracking-wide">
                   IV. ĐIỀU CHỈNH SAU BÀI DẠY
                 </h3>
-                <p className="text-stone-500 italic pl-2">
-                  {activePlan.postLessonAdjustment || "...................................................................................................................................................................................................."}
-                </p>
+                {isEditing && editFormData ? (
+                  <textarea
+                    rows={3}
+                    value={editFormData.postLessonAdjustment || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, postLessonAdjustment: e.target.value })}
+                    className="w-full p-2 text-xs border border-black bg-white font-sans"
+                    placeholder="Nhập ghi chú hoặc điều chỉnh sau bài dạy..."
+                  />
+                ) : (
+                  <p className="text-stone-500 italic pl-2">
+                    {activePlan.postLessonAdjustment || "...................................................................................................................................................................................................."}
+                  </p>
+                )}
               </div>
             </div>
           ) : (
