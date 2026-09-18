@@ -1,0 +1,8 @@
+{
+  "name": "Quản Lý Thời Khóa Biểu & Soạn Kế Hoạch Bài Dạy Tiểu Học (Lớp 1-5)",
+  "description": "Hệ thống tự động đồng bộ Thời khóa biểu 35 tuần năm học 2026-2027 (Tuần 1 từ 07/09/2026, tự động tính bù 2 tuần nghỉ Tết), đồng bộ thứ tự Lịch báo giảng và KHBD chuẩn CV 2345/BGDĐT, cùng thanh tải phiếu bài tập trắc nghiệm cuối tuần các môn từ Loigiaihay.com.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
